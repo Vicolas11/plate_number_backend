@@ -2,10 +2,12 @@ from skimage.measure import regionprops
 from skimage.transform import resize
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
+from datetime import datetime
 from skimage import measure
 from model import model
 import numpy as np
 import cv2
+
 
 def licensePlateRecognition(plate_num_img):
     imgread = cv2.imread(plate_num_img)
@@ -47,8 +49,8 @@ def licensePlateRecognition(plate_num_img):
             # this is just to keep track of the arrangement of the characters
             column_list.append(x0)
 
-    # ts = f"{datetime.timestamp(datetime.now())}".split(".")[0]
-    threshPath = f'threshold/threshold.png'
+    time_stramp = f"{datetime.timestamp(datetime.now())}".split(".")[0]
+    threshPath = f'threshold/thre{time_stramp}.png'
     plt.savefig(threshPath)
 
     classification_result = []

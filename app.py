@@ -1,12 +1,15 @@
 from flask import Flask, request, jsonify, send_file, render_template_string
 from werkzeug.utils import secure_filename
 from anpr import licensePlateRecognition
-from encoded_img import getImage
+from datetime import datetime
+from utils import removeFiles
 from flask_cors import CORS
 import os
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(PROJECT_ROOT, 'uploads')
+THRESH_FOLDER = os.path.join(PROJECT_ROOT, 'threshold')
+
 
 app = Flask(__name__)
 app.secret_key = "secret key"
@@ -35,18 +38,30 @@ def fileUpload():
         
         if file:
             filename = secure_filename(file.filename)
-            img_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(img_path)
+            time_stramp = f"{datetime.timestamp(datetime.now())}".split(".")[0]
+            file_name = filename.split('.')[0]
+            ext = filename.split('.')[1]
+            file_path = f"{file_name}{time_stramp}.{ext}"
+            status = removeFiles(UPLOAD_FOLDER, THRESH_FOLDER)
+            if status:
+                img_path = os.path.join(app.config['UPLOAD_FOLDER'], file_path)
+                file.save(img_path)
 
-            license_num, thresh_path = licensePlateRecognition(img_path)
-            # encodedImg = getImage(thresh_path)
-            
-            resp = jsonify({
-                'message' : 'File successfully uploaded', 
-                'platenumber': license_num,
-            })
-            resp.status_code = 201
-            return resp
+                license_num, thresh_path = licensePlateRecognition(img_path)
+                # encodedImg = getImage(thresh_path)
+                
+                resp = jsonify({
+                    'message' : 'File successfully uploaded',
+                    'threshold': thresh_path,
+                    'file': f'files/{file_path}',
+                    'platenumber': license_num,
+                })
+                resp.status_code = 201
+                return resp
+            else:
+                resp = jsonify({'message' : 'Error in file deleting!'})
+                resp.status_code = 400
+                return resp
         else:
             resp = jsonify({'message' : 'Error in file upload!'})
             resp.status_code = 400
@@ -61,7 +76,7 @@ def fileUpload():
 def getFiles(platenumber):
     try:
         file = send_file(f'uploads/{platenumber}')
-    except FileNotFoundError:     
+    except FileNotFoundError: 
         errType = 'File not Found!'
         resp = jsonify({
             'message': errType,
@@ -73,7 +88,7 @@ def getFiles(platenumber):
 def getThreshold(threshold):
     try:
         file = send_file(f'threshold/{threshold}')
-    except FileNotFoundError:     
+    except FileNotFoundError:
         errType = 'File not Found!'
         resp = jsonify({
             'message': errType,
